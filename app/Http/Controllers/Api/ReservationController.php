@@ -58,7 +58,7 @@ class ReservationController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,approved,ready,cancelled',
+            'status' => 'required|in:pending,approved,ready,cancelled,completed',
         ]);
 
         $reservation = Reservation::findOrFail($id);
