@@ -13,6 +13,18 @@ use App\Models\TicketItem;
 
 class CheckoutController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = Ticket::with(['items.product', 'items.addOns', 'activities']);
+        
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $tickets = $query->orderBy('created_at', 'desc')->get();
+        return response()->json($tickets);
+    }
+
     public function store(Request $request)
     {
         // 1. Validar la entrada (payload del Kiosko)
@@ -24,6 +36,8 @@ class CheckoutController extends Controller
             'items.*.add_ons' => 'nullable|array',
             'items.*.add_ons.*' => 'exists:add_ons,id',
             'payment_method' => 'required|string',
+            'customer_name' => 'nullable|string|max:100',
+            'order_type' => 'nullable|in:takeout,dine_in,delivery',
         ]);
 
         try {
@@ -37,7 +51,14 @@ class CheckoutController extends Controller
             $ticket = Ticket::create([
                 'total_amount' => 0, // Se actualizará al final
                 'status' => 'pending',
-                'order_type' => 'dine_in', // O 'takeout', esto puede venir del request
+                'order_type' => $validated['order_type'] ?? 'dine_in',
+                'customer_name' => $validated['customer_name'] ?? null,
+            ]);
+
+            // Activity Log inicial
+            $ticket->activities()->create([
+                'action' => 'Pedido recibido en sistema',
+                'author' => 'System'
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -154,6 +175,14 @@ class CheckoutController extends Controller
         $ticket = Ticket::where('id', $id)->orWhere('ticket_number', $id)->firstOrFail();
         $ticket->status = $validated['status'];
         $ticket->save();
+
+        // Registrar en Log
+        $user = $request->user();
+        $author = $user ? $user->name : 'Barista';
+        $ticket->activities()->create([
+            'action' => 'Estado actualizado a ' . strtoupper($validated['status']),
+            'author' => $author
+        ]);
 
         return response()->json([
             'message' => 'Estado del pedido actualizado a: ' . $ticket->status,

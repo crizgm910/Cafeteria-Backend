@@ -20,4 +20,8 @@ class Ticket extends Model {
     public function invoice(): HasOne {
         return $this->hasOne(Invoice::class);
     }
+
+    public function activities(): HasMany {
+        return $this->hasMany(TicketActivity::class);
+    }
 }

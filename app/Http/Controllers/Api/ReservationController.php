@@ -8,6 +8,28 @@ use App\Models\Reservation;
 
 class ReservationController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = Reservation::query();
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('date') && $request->date !== 'all') {
+            if ($request->date === 'today') {
+                $query->where('date', date('Y-m-d'));
+            } elseif ($request->date === 'tomorrow') {
+                $query->where('date', date('Y-m-d', strtotime('+1 day')));
+            } elseif ($request->date === 'week') {
+                $query->whereBetween('date', [date('Y-m-d'), date('Y-m-d', strtotime('+7 days'))]);
+            }
+        }
+
+        $reservations = $query->orderBy('created_at', 'desc')->get();
+        return response()->json($reservations);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
