@@ -147,7 +147,7 @@ class CheckoutController extends Controller
             // Actualizar el Ticket con el total final
             $ticket->update(['total' => $totalAmount]);
 
-            $paymentProvider = $validated['payment_method'] === 'efectivo' ? 'cash' : 'card_terminal';
+            $paymentProvider = in_array($validated['payment_method'], ['cash', 'efectivo']) ? 'cash' : 'card_terminal';
 
             // Guardar Pago
             $ticket->payments()->create([
