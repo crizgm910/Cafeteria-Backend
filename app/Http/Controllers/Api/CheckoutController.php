@@ -144,4 +144,20 @@ class CheckoutController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,paid,preparing,ready,delivered,cancelled',
+        ]);
+
+        $ticket = Ticket::where('id', $id)->orWhere('ticket_number', $id)->firstOrFail();
+        $ticket->status = $validated['status'];
+        $ticket->save();
+
+        return response()->json([
+            'message' => 'Estado del pedido actualizado a: ' . $ticket->status,
+            'ticket' => $ticket
+        ]);
+    }
 }
