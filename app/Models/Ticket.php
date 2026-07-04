@@ -9,7 +9,7 @@ class Ticket extends Model {
     use HasUuids;
     protected $guarded = [];
 
-    public function ticketItems(): HasMany {
+    public function items(): HasMany {
         return $this->hasMany(TicketItem::class);
     }
 
