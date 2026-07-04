@@ -10,6 +10,7 @@ use App\Models\AddOn;
 use App\Models\Ingredient;
 use App\Models\Ticket;
 use App\Models\TicketItem;
+use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
@@ -49,7 +50,8 @@ class CheckoutController extends Controller
             
             // Creamos el Ticket en la base de datos (Status 'pending' por defecto)
             $ticket = Ticket::create([
-                'total_amount' => 0, // Se actualizará al final
+                'ticket_number' => 'TGR-' . strtoupper(Str::random(6)),
+                'total' => 0, // Se actualizará al final
                 'status' => 'pending',
                 'order_type' => $validated['order_type'] ?? 'dine_in',
                 'customer_name' => $validated['customer_name'] ?? null,
@@ -95,9 +97,10 @@ class CheckoutController extends Controller
                     
                     // Registro de auditoría (Transaction)
                     $ingredient->inventoryTransactions()->create([
-                        'type' => 'sale',
+                        'transaction_type' => 'sale',
                         'quantity' => -$qtyToDeduct,
-                        'reason' => 'Venta en ticket ' . $ticket->id
+                        'reference_id' => $ticket->id,
+                        'stock_after_transaction' => $ingredient->current_stock
                     ]);
                 }
 
@@ -124,9 +127,10 @@ class CheckoutController extends Controller
                             $ingredientAddOn->decrement('current_stock', $qtyToDeductAddOn);
                             
                             $ingredientAddOn->inventoryTransactions()->create([
-                                'type' => 'sale',
+                                'transaction_type' => 'sale',
                                 'quantity' => -$qtyToDeductAddOn,
-                                'reason' => 'Complemento en ticket ' . $ticket->id
+                                'reference_id' => $ticket->id,
+                                'stock_after_transaction' => $ingredientAddOn->current_stock
                             ]);
                         }
                     }
@@ -141,13 +145,15 @@ class CheckoutController extends Controller
             }
 
             // Actualizar el Ticket con el total final
-            $ticket->update(['total_amount' => $totalAmount]);
+            $ticket->update(['total' => $totalAmount]);
+
+            $paymentProvider = $validated['payment_method'] === 'efectivo' ? 'cash' : 'card_terminal';
 
             // Guardar Pago
             $ticket->payments()->create([
                 'amount' => $totalAmount,
-                'method' => $validated['payment_method'],
-                'status' => 'completed'
+                'gateway_provider' => $paymentProvider,
+                'status' => 'approved'
             ]);
 
             // 3. Todo salió bien, confirmar la transacción
