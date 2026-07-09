@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\IngredientController;
+use App\Http\Controllers\Api\InventoryTransactionController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\ReservationController;
@@ -30,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/reservations/{id}/status', [ReservationController::class, 'updateStatus']);
 
     Route::apiResource('products', ProductController::class);
+    
+    // Inventario
+    Route::apiResource('ingredients', IngredientController::class);
+    Route::post('/inventory/transactions', [InventoryTransactionController::class, 'store']);
 });
 
 
