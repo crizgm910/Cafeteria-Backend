@@ -16,7 +16,7 @@ class CheckoutController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Ticket::with(['items.product', 'items.addOns', 'activities']);
+        $query = Ticket::with(['items.product', 'items.addOns', 'activities', 'payments']);
         
         if ($request->has('status')) {
             $query->where('status', $request->status);

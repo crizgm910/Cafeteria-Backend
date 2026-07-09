@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\ReservationController;
@@ -15,7 +16,7 @@ Route::get('/user', function (Request $request) {
 // Login
 Route::post('/login', [AuthController::class, 'login']);
 
-// Rutas públicas (E-commerce Cliente)
+// Rutas pÃºblicas (E-commerce Cliente)
 Route::get('/menu', [MenuController::class, 'index']);
 Route::post('/checkout', [CheckoutController::class, 'store']);
 Route::post('/reservations', [ReservationController::class, 'store']);
@@ -27,4 +28,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::get('/reservations', [ReservationController::class, 'index']);
     Route::patch('/reservations/{id}/status', [ReservationController::class, 'updateStatus']);
+
+    Route::apiResource('products', ProductController::class);
 });
+
+
+
+
+
