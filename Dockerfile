@@ -19,7 +19,6 @@ FROM php:8.3-cli-bookworm
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libonig-dev libpq-dev \
     && docker-php-ext-install -j"$(nproc)" bcmath mbstring opcache pdo_pgsql \
-    && apt-get purge -y --auto-remove libonig-dev libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
@@ -37,4 +36,3 @@ ENV APP_ENV=production \
 EXPOSE 10000
 
 CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan view:cache && exec php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
-
