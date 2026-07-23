@@ -9,7 +9,11 @@ return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
     'allowed_methods' => ['*'],
     'allowed_origins' => $origins,
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https://appgprj-[a-z0-9]+\.sites\.#i',
+        '#^https://.*\.sites\.openai\.org$#i',
+        '#^https://.*\.sites\.chatgpt\.com$#i',
+    ],
     'allowed_headers' => ['Accept', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Correlation-ID'],
     'exposed_headers' => ['X-Correlation-ID'],
     'max_age' => 600,
