@@ -11,4 +11,8 @@ class InventoryTransaction extends Model {
     public function ingredient(): BelongsTo {
         return $this->belongsTo(Ingredient::class);
     }
+
+    public function user(): BelongsTo {
+        return $this->belongsTo(User::class);
+    }
 }

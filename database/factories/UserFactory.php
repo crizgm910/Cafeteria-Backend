@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Models\Role;
 
 /**
  * @extends Factory<User>
@@ -41,5 +42,13 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function withRole(string $role = 'owner'): static
+    {
+        return $this->afterCreating(function (User $user) use ($role): void {
+            $roleModel = Role::where('slug', $role)->firstOrFail();
+            $user->roles()->syncWithoutDetaching([$roleModel->id]);
+        });
     }
 }

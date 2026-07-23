@@ -15,10 +15,10 @@ return new class extends Migration
             
             $table->uuid('id')->primary();
             $table->foreignUuid('ticket_id')->constrained('tickets')->cascadeOnDelete();
-            $table->enum('gateway_provider', ['stripe', 'mercado_pago', 'conekta', 'codi', 'cash', 'card_terminal']);
+            $table->enum('gateway_provider', ['stripe', 'mercado_pago', 'conekta', 'codi', 'cash', 'card_terminal', 'pay_at_pickup']);
             $table->string('transaction_reference', 255)->nullable();
             $table->decimal('amount', 10, 2);
-            $table->enum('status', ['pending', 'approved', 'declined', 'refunded'])->default('pending');
+            $table->enum('status', ['pending', 'approved', 'declined', 'refunded', 'cancelled'])->default('pending');
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
             $table->timestamp('last_sync', 3)->useCurrent()->useCurrentOnUpdate();

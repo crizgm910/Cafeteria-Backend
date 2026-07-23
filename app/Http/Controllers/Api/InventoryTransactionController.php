@@ -10,10 +10,21 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryTransactionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $transactions = InventoryTransaction::with('ingredient')->orderBy('created_at', 'desc')->get();
-        return response()->json($transactions);
+        $validated = $request->validate([
+            'ingredient_id' => 'nullable|integer|exists:ingredients,id',
+            'transaction_type' => 'nullable|in:sale,restock,waste,adjustment',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+        $query = InventoryTransaction::with(['ingredient', 'user:id,name'])->orderByDesc('created_at')->orderByDesc('id');
+        foreach (['ingredient_id', 'transaction_type'] as $filter) {
+            if (isset($validated[$filter])) $query->where($filter, $validated[$filter]);
+        }
+
+        return response()->json(isset($validated['per_page'])
+            ? $query->paginate($validated['per_page'])
+            : $query->get());
     }
 
     public function store(Request $request)
@@ -22,56 +33,64 @@ class InventoryTransactionController extends Controller
             'ingredient_id' => 'required|exists:ingredients,id',
             'transaction_type' => 'required|in:sale,restock,waste,adjustment',
             'quantity' => 'required|numeric',
+            'reason' => 'required|string|max:120',
+            'notes' => 'nullable|string|max:1000',
+            'reference_id' => 'nullable|uuid',
         ]);
 
+        $quantity = (float) $validated['quantity'];
+        $type = $validated['transaction_type'];
+
+        if ($quantity == 0) {
+            return response()->json(['message' => 'La cantidad no puede ser cero.'], 400);
+        }
+
+        if (in_array($type, ['sale', 'restock', 'waste']) && $quantity < 0) {
+            return response()->json(['message' => 'La cantidad debe ser positiva para este tipo de transacción.'], 400);
+        }
+
         try {
-            DB::beginTransaction();
+            $result = DB::transaction(function () use ($request, $validated, $quantity, $type) {
+                $ingredient = Ingredient::lockForUpdate()->findOrFail($validated['ingredient_id']);
+                $stockBefore = (float) $ingredient->current_stock;
 
-            $ingredient = Ingredient::lockForUpdate()->findOrFail($validated['ingredient_id']);
-            
-            $quantity = $validated['quantity'];
-            
-            // Adjust stock based on transaction type
-            if (in_array($validated['transaction_type'], ['sale', 'waste'])) {
-                $quantity = -$quantity; // Subtract from stock
-            } else if ($validated['transaction_type'] === 'adjustment') {
-                // If it's an adjustment, the quantity provided could be interpreted as absolute or relative.
-                // We'll treat adjustment as a positive/negative relative amount, but our validation said min: 0.01.
-                // For simplicity, let's treat "adjustment" as overriding the stock or just pass the exact amount as +/-.
-                // In this implementation, let's allow negative numbers in validation if adjustment? 
-                // Wait, if it's an adjustment, we might need to know if it's a positive or negative adjustment.
-                // Let's stick to standard behavior: we assume the frontend sends the *difference* and we just add it, 
-                // BUT the validation says min 0.01. Let's just remove the min:0.01 for adjustment, or handle it manually.
-                // Let's change the validation rule.
-            }
-            // Actually, if it's 'adjustment', let's say it can be negative. We will validate that below.
+                $appliedQuantity = $quantity;
+                if (in_array($type, ['sale', 'waste'])) {
+                    $appliedQuantity = -$quantity;
+                }
 
-            $newStock = $ingredient->current_stock + $quantity;
+                $newStock = $ingredient->current_stock + $appliedQuantity;
 
-            if ($newStock < 0) {
-                return response()->json(['message' => 'Insufficient stock for this transaction.'], 400);
-            }
+                if ($newStock < 0) {
+                    throw new \Exception('Stock insuficiente para esta transacción.');
+                }
 
-            $transaction = InventoryTransaction::create([
-                'ingredient_id' => $ingredient->id,
-                'transaction_type' => $validated['transaction_type'],
-                'quantity' => $quantity,
-                'stock_after_transaction' => $newStock,
-            ]);
+                $transaction = InventoryTransaction::create([
+                    'ingredient_id' => $ingredient->id,
+                    'transaction_type' => $type,
+                    'quantity' => $appliedQuantity,
+                    'stock_before_transaction' => $stockBefore,
+                    'stock_after_transaction' => $newStock,
+                    'user_id' => $request->user()->id,
+                    'reason' => $validated['reason'],
+                    'notes' => $validated['notes'] ?? null,
+                    'reference_id' => $validated['reference_id'] ?? null,
+                ]);
 
-            $ingredient->current_stock = $newStock;
-            $ingredient->save();
+                $ingredient->current_stock = $newStock;
+                $ingredient->save();
 
-            DB::commit();
+                return [
+                    'transaction' => $transaction,
+                    'ingredient' => $ingredient
+                ];
+            });
 
-            return response()->json([
-                'transaction' => $transaction,
-                'ingredient' => $ingredient
-            ], 201);
+            return response()->json($result, 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to process transaction', 'error' => $e->getMessage()], 500);
+            $status = $e->getMessage() === 'Stock insuficiente para esta transacción.' ? 400 : 500;
+            return response()->json(['message' => 'Error al procesar la transacción', 'error' => $e->getMessage()], $status);
         }
     }
 }

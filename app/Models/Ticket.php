@@ -9,6 +9,18 @@ class Ticket extends Model {
     use HasUuids;
     protected $guarded = [];
 
+    protected $hidden = ['tracking_token', 'request_fingerprint', 'idempotency_key'];
+
+    protected function casts(): array {
+        return [
+            'tracking_token' => 'encrypted',
+            'subtotal' => 'decimal:2',
+            'tax' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'total' => 'decimal:2',
+        ];
+    }
+
     public function items(): HasMany {
         return $this->hasMany(TicketItem::class);
     }

@@ -64,6 +64,19 @@ return [
             ]) : [],
         ],
 
+        'legacy_mysql' => [
+            'driver' => 'mysql',
+            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+            'port' => env('LEGACY_DB_PORT', '3306'),
+            'database' => env('LEGACY_DB_DATABASE', 'cafeteria_app'),
+            'username' => env('LEGACY_DB_USERNAME', 'root'),
+            'password' => env('LEGACY_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
@@ -95,8 +108,16 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
+            'search_path' => env('DB_SCHEMA', 'public'),
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'options' => extension_loaded('pdo_pgsql') ? array_filter([
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT') === null
+                    ? null
+                    : filter_var(env('DB_PERSISTENT'), FILTER_VALIDATE_BOOL),
+                PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES') === null
+                    ? null
+                    : filter_var(env('DB_EMULATE_PREPARES'), FILTER_VALIDATE_BOOL),
+            ], fn ($value) => $value !== null) : [],
         ],
 
         'sqlsrv' => [

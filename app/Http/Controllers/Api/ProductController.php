@@ -8,10 +8,30 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('category')->get();
-        return response()->json($products);
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:120',
+            'category_id' => 'nullable|integer|exists:categories,id',
+            'active' => 'nullable|boolean',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+        $query = Product::with(['category', 'ingredients:id,name,unit_of_measure'])
+            ->orderBy('name')->orderBy('id');
+        if ($search = trim($validated['search'] ?? '')) {
+            $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
+        }
+        foreach (['category_id', 'active'] as $filter) {
+            if (array_key_exists($filter, $validated)) $query->where($filter, $validated[$filter]);
+        }
+
+        if (isset($validated['per_page'])) {
+            $products = $query->paginate($validated['per_page']);
+            $products->getCollection()->each->append('is_sellable');
+            return response()->json($products);
+        }
+
+        return response()->json($query->get()->each->append('is_sellable'));
     }
 
     public function store(Request $request)
@@ -31,14 +51,15 @@ class ProductController extends Controller
         }
 
         $product = Product::create($validated);
-        $product->load('category');
+        $product->load(['category', 'ingredients:id,name,unit_of_measure'])->append('is_sellable');
 
         return response()->json($product, 201);
     }
 
     public function show($id)
     {
-        $product = Product::with('category')->findOrFail($id);
+        $product = Product::with(['category', 'ingredients:id,name,unit_of_measure'])->findOrFail($id)
+            ->append('is_sellable');
         return response()->json($product);
     }
 
@@ -57,7 +78,7 @@ class ProductController extends Controller
         ]);
 
         $product->update($validated);
-        $product->load('category');
+        $product->load(['category', 'ingredients:id,name,unit_of_measure'])->append('is_sellable');
 
         return response()->json($product);
     }

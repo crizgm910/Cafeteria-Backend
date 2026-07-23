@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('tax', 10, 2)->default(0);
             $table->decimal('discount', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);
-            $table->enum('source', ['kiosk', 'admin_panel'])->default('kiosk');
+            $table->enum('source', ['public_web', 'admin_panel'])->default('public_web');
             $table->timestamps(3);
             $table->timestamp('last_sync', 3)->useCurrent()->useCurrentOnUpdate();
         

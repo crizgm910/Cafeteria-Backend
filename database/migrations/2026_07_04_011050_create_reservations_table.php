@@ -15,11 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email');
-            $table->string('date'); // DD/MM/YYYY
-            $table->string('time');
+            $table->date('date');
+            $table->time('time');
             $table->integer('guests');
-            $table->enum('status', ['pending', 'approved', 'ready', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'approved', 'ready', 'cancelled', 'completed'])->default('pending');
             $table->timestamps();
+            $table->index(['date', 'status']);
         });
     }
 

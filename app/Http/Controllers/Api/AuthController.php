@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -16,17 +17,29 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = Str::lower(trim($request->string('email')->toString()));
+        $user = User::where('email', $email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user || !$user->active || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Credenciales incorrectas'
             ], 401);
         }
 
+        $user->tokens()->where('name', 'admin_token')->delete();
+
         return response()->json([
             'token' => $user->createToken('admin_token')->plainTextToken,
-            'user' => $user
+            'user' => array_merge($user->toArray(), $user->authorizationData()),
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()?->delete();
+
+        return response()->json([
+            'message' => 'Sesión cerrada correctamente'
         ]);
     }
 }

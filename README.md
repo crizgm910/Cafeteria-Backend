@@ -1,59 +1,55 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# The Gentlemen's Roast — API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend de The Gentlemen's Roast: punto de venta, caja, cocina, catálogo, inventario, pedidos públicos, usuarios, reportes y reservaciones. Laravel es la única fuente de verdad; los navegadores nunca se conectan directamente a Supabase.
 
-## About Laravel
+## Tecnología y componentes
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2 o superior y Laravel 12.
+- PostgreSQL de Supabase como base remota; SQLite para las pruebas rápidas.
+- Laravel Sanctum para sesiones del personal, con expiración configurable.
+- API JSON bajo `/api`; Admin y Landing son repositorios Vanilla JS separados.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Instalación local
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```powershell
+Copy-Item .env.example .env
+composer install
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+php artisan serve --host=127.0.0.1 --port=8000
+```
 
-## Learning Laravel
+Configure en `.env` la conexión PostgreSQL, `APP_URL`, `APP_TIMEZONE`, `TGR_ALLOWED_ORIGINS` y `SANCTUM_EXPIRATION`. Nunca coloque credenciales de Supabase en Admin o Landing ni confirme `.env` en Git.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Para cargar únicamente las áreas y mesas de demostración sin reinicializar catálogo:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```powershell
+php artisan db:seed --class=ReservationDemoSeeder --force
+```
 
-## Laravel Sponsors
+## Verificación
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```powershell
+php artisan test
+php artisan migrate:status
+php artisan route:list --path=api
+```
 
-### Premium Partners
+La documentación operativa está en [`docs`](docs). Los puntos de entrada recomendados son:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
+- [`docs/STATE_MACHINES.md`](docs/STATE_MACHINES.md)
+- [`docs/PRUEBAS_ACEPTACION_POR_ROL.md`](docs/PRUEBAS_ACEPTACION_POR_ROL.md)
+- [`docs/LISTA_PREPRODUCCION_TGR.md`](docs/LISTA_PREPRODUCCION_TGR.md)
+- [`docs/RESPALDO_Y_RECUPERACION_SUPABASE.md`](docs/RESPALDO_Y_RECUPERACION_SUPABASE.md)
 
-## Contributing
+## Reglas de arquitectura
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Precios, stock, permisos, estados y disponibilidad se calculan en Laravel.
+2. Operaciones económicas, de inventario y capacidad usan transacciones e idempotencia cuando corresponde.
+3. Las rutas administrativas requieren token y permiso explícito.
+4. Las respuestas de `/api/*`, incluidos los errores, son JSON.
+5. Los datos con historial se desactivan en vez de eliminarse cuando así lo exige el dominio.
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Este repositorio contiene datos de demostración. Antes de producción deben sustituirse datos comerciales, usuarios, costos y existencias, y completarse la lista de preproducción.
